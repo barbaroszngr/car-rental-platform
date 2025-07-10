@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Car, Calendar, Package } from 'lucide-react';
+import { Shield, Calendar, Package } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Button } from '../components/ui/Button';
@@ -119,7 +119,6 @@ const PendingPaymentPage: React.FC = () => {
         
         // Navigate to payment page
         console.log('Navigating to payment page:', `/payment/${booking.id}`);
-        toast.success('Booking created successfully!');
         navigate(`/payment/${booking.id}`);
       } else {
         console.error('No booking returned from createBooking');

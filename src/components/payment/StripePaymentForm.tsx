@@ -13,13 +13,15 @@ interface StripePaymentFormProps {
   onError: (error: string) => void;
   amount: number;
   bookingId: number;
+  onProcessingChange?: (isProcessing: boolean) => void;
 }
 
 export default function StripePaymentForm({ 
   onSuccess, 
   onError, 
   amount, 
-  bookingId 
+  bookingId,
+  onProcessingChange 
 }: StripePaymentFormProps) {
   const stripe = useStripe();
   const elements = useElements();
@@ -34,6 +36,7 @@ export default function StripePaymentForm({
     }
 
     setIsProcessing(true);
+    onProcessingChange?.(true);
     setErrorMessage(null);
 
     try {
@@ -54,6 +57,8 @@ export default function StripePaymentForm({
           setErrorMessage('An unexpected error occurred. Please try again.');
         }
         onError(error.message || 'Payment failed');
+        setIsProcessing(false);
+        onProcessingChange?.(false);
       } else if (paymentIntent && paymentIntent.status === 'succeeded') {
         // Payment succeeded - wait for webhook to update the booking
         // Poll for booking status update (max 10 seconds)
@@ -87,14 +92,20 @@ export default function StripePaymentForm({
               // Webhook didn't update in time, but payment was successful
               onSuccess(paymentIntent.id);
             }
+            
+            // Only stop processing if we're done polling
+            if (isUpdated || attempts >= maxAttempts) {
+              setIsProcessing(false);
+              // Don't call onProcessingChange(false) - let parent handle it
+            }
           }
         }, 1000);
       }
     } catch (err) {
       setErrorMessage('An unexpected error occurred. Please try again.');
       onError('Payment processing failed');
-    } finally {
       setIsProcessing(false);
+      onProcessingChange?.(false);
     }
   };
 
@@ -123,8 +134,16 @@ export default function StripePaymentForm({
         type="submit"
         disabled={!stripe || !elements || isProcessing}
         className="w-full"
+        variant={isProcessing ? "outline" : "primary"}
       >
-        {isProcessing ? 'Processing...' : `Pay $${amount.toFixed(2)}`}
+        {isProcessing ? (
+          <div className="flex items-center justify-center gap-2">
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary-800 border-t-transparent"></div>
+            <span>Processing payment...</span>
+          </div>
+        ) : (
+          `Pay $${amount.toFixed(2)}`
+        )}
       </Button>
 
       <div className="text-xs text-gray-500 text-center">

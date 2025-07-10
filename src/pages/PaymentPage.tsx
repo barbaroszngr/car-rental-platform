@@ -30,6 +30,7 @@ const PaymentPage: React.FC = () => {
     requiresQuote: false 
   });
   const [showAuthModal, setShowAuthModal] = useState(false);
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   useEffect(() => {
     if (!bookingId) {
@@ -147,9 +148,16 @@ const PaymentPage: React.FC = () => {
         .update({ stripe_payment_status: 'succeeded' })
         .eq('id', parseInt(bookingId!));
       
+      // Close overlay when showing success toast
+      setIsProcessingPayment(false);
       toast.success('Payment successful! Your booking is confirmed.');
-      navigate(`/bookings/${bookingId}`);
+      
+      // Small delay to ensure user sees the success message
+      setTimeout(() => {
+        navigate(`/bookings/${bookingId}`);
+      }, 2000);
     } catch (error) {
+      setIsProcessingPayment(false);
       toast.error('Payment was successful but we encountered an error. Please contact support.');
     }
   };
@@ -231,8 +239,24 @@ const PaymentPage: React.FC = () => {
   const grandTotal = booking.total_price;
 
   return (
-    <div className="min-h-screen pt-16 pb-12 bg-secondary-50">
-      <div className="container-custom">
+    <>
+      {/* Processing overlay */}
+      {isProcessingPayment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+          <div className="bg-white rounded-lg p-8 max-w-sm w-full mx-4">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary-800 border-t-transparent mx-auto mb-4"></div>
+              <h3 className="text-lg font-semibold mb-2">Processing Payment</h3>
+              <p className="text-gray-600">Please wait while we securely process your payment...</p>
+              <p className="text-sm text-gray-500 mt-2">This may take a few moments</p>
+              <p className="text-sm text-gray-500">Do not close or refresh this page</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="min-h-screen pt-16 pb-12 bg-secondary-50">
+        <div className="container-custom">
         <div className="mb-6">
           <button 
             onClick={() => navigate(-1)} 
@@ -286,6 +310,7 @@ const PaymentPage: React.FC = () => {
                     bookingId={parseInt(bookingId!)}
                     onSuccess={handlePaymentSuccess}
                     onError={handlePaymentError}
+                    onProcessingChange={setIsProcessingPayment}
                   />
                 </StripeProvider>
               ) : (
@@ -390,7 +415,8 @@ const PaymentPage: React.FC = () => {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </>
   );
 };
 
