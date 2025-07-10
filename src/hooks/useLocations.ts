@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useLocationStore } from '../stores/locationStore';
 import { Database } from '../types/supabase';
 
@@ -25,25 +25,26 @@ export function useLocations() {
   }, [isInitialized, fetchLocations]);
 
   // Convert database locations to the format expected by existing components
-  const locationOptions: LocationOption[] = locations.map(loc => ({
-    value: loc.value,
-    label: loc.label,
-    address: loc.address,
-    fee: loc.delivery_fee,
-    category: loc.category,
-    distance_from_base: loc.distance_from_base
-  }));
+  const locationOptions: LocationOption[] = useMemo(() => 
+    locations.map(loc => ({
+      value: loc.value,
+      label: loc.label,
+      address: loc.address,
+      fee: loc.delivery_fee,
+      category: loc.category,
+      distance_from_base: loc.distance_from_base
+    })), [locations]);
 
   // Helper functions that work with both old and new systems
-  const getLocationByValue = (value: string): LocationOption | undefined => {
+  const getLocationByValue = useCallback((value: string): LocationOption | undefined => {
     return locationOptions.find(loc => loc.value === value);
-  };
+  }, [locationOptions]);
 
-  const getLocationById = (id: string): Location | undefined => {
+  const getLocationById = useCallback((id: string): Location | undefined => {
     return locations.find(loc => loc.id === id);
-  };
+  }, [locations]);
 
-  const calculateDeliveryFee = (pickupValue: string, returnValue: string) => {
+  const calculateDeliveryFee = useCallback((pickupValue: string, returnValue: string) => {
     const pickupLocation = getLocationByValue(pickupValue);
     const returnLocation = getLocationByValue(returnValue);
 
@@ -82,11 +83,18 @@ export function useLocations() {
       totalFee: pickupFee + returnFee, 
       requiresQuote: false 
     };
-  };
+  }, [getLocationByValue]);
 
   // Default location constants
-  const BASE_LOCATION = locationOptions.find(loc => loc.value === 'base-office') || locationOptions[0];
-  const DEFAULT_LOCATION = locationOptions.find(loc => loc.value === 'airport-hnl') || locationOptions[0];
+  const BASE_LOCATION = useMemo(() => 
+    locationOptions.find(loc => loc.value === 'base-office') || locationOptions[0], 
+    [locationOptions]
+  );
+  
+  const DEFAULT_LOCATION = useMemo(() => 
+    locationOptions.find(loc => loc.value === 'airport-hnl') || locationOptions[0], 
+    [locationOptions]
+  );
 
   return {
     locations: locationOptions,
