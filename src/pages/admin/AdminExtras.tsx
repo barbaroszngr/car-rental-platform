@@ -1,29 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Package, Shield, Umbrella, Camera, Tent, Search } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '../../lib/supabase';
 import { Extra, ExtraCategory, ExtraPriceType } from '../../types';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { Select } from '../../components/ui/Select';
-
-const categoryOptions = [
-  { value: 'services', label: 'Services' },
-  { value: 'safety', label: 'Safety' },
-  { value: 'beach', label: 'Beach' },
-  { value: 'tech', label: 'Technology' },
-  { value: 'camping', label: 'Camping' }
-];
-
-const priceTypeOptions = [
-  { value: 'per_day', label: 'Per Day' },
-  { value: 'one_time', label: 'One Time' }
-];
-
-const iconOptions = [
-  'Fuel', 'Sparkles', 'Baby', 'Armchair', 'Umbrella', 'ShoppingCart', 
-  'Package', 'Backpack', 'Package2', 'Camera', 'Battery'
-];
+import { ExtrasListTable } from '../../components/admin/extras/ExtrasListTable';
+import { ExtraForm } from '../../components/admin/extras/ExtraForm';
 
 const AdminExtras: React.FC = () => {
   const [extras, setExtras] = useState<Extra[]>([]);
@@ -148,8 +131,6 @@ const AdminExtras: React.FC = () => {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this extra?')) return;
-
     try {
       const { error } = await supabase
         .from('extras')
@@ -170,12 +151,12 @@ const AdminExtras: React.FC = () => {
     try {
       const { error } = await supabase
         .from('extras')
-        .update({ active: !active })
+        .update({ active })
         .eq('id', id);
 
       if (error) throw error;
       
-      toast.success(`Extra ${!active ? 'activated' : 'deactivated'} successfully`);
+      toast.success(`Extra ${active ? 'activated' : 'deactivated'} successfully`);
       fetchExtras();
     } catch (error) {
       console.error('Error toggling extra status:', error);
@@ -207,17 +188,6 @@ const AdminExtras: React.FC = () => {
     extra.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getCategoryIcon = (category: ExtraCategory) => {
-    switch (category) {
-      case 'services': return <Package className="w-4 h-4" />;
-      case 'safety': return <Shield className="w-4 h-4" />;
-      case 'beach': return <Umbrella className="w-4 h-4" />;
-      case 'tech': return <Camera className="w-4 h-4" />;
-      case 'camping': return <Tent className="w-4 h-4" />;
-      default: return <Package className="w-4 h-4" />;
-    }
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -246,140 +216,14 @@ const AdminExtras: React.FC = () => {
 
       {/* Form */}
       {showForm && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-lg font-semibold mb-4">
-            {editingExtra ? 'Edit Extra' : 'Add New Extra'}
-          </h2>
-          
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Input
-                  label="Name"
-                  value={formData.name}
-                  onChange={handleNameChange}
-                  required
-                />
-              </div>
-              
-              <div>
-                <Input
-                  label="Slug"
-                  value={formData.slug}
-                  onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
-                  required
-                  disabled={editingExtra !== null}
-                />
-              </div>
-              
-              <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
-                  rows={3}
-                />
-              </div>
-              
-              <div>
-                <Input
-                  label="Price"
-                  type="number"
-                  step="0.01"
-                  value={formData.price}
-                  onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
-                  required
-                />
-              </div>
-              
-              <div>
-                <Select
-                  label="Price Type"
-                  value={formData.price_type}
-                  onChange={(e) => setFormData(prev => ({ ...prev, price_type: e.target.value as ExtraPriceType }))}
-                  options={priceTypeOptions}
-                />
-              </div>
-              
-              <div>
-                <Select
-                  label="Category"
-                  value={formData.category}
-                  onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value as ExtraCategory }))}
-                  options={categoryOptions}
-                />
-              </div>
-              
-              <div>
-                <Input
-                  label="Stock Quantity (leave empty for unlimited)"
-                  type="number"
-                  value={formData.stock_quantity}
-                  onChange={(e) => setFormData(prev => ({ ...prev, stock_quantity: e.target.value }))}
-                />
-              </div>
-              
-              <div>
-                <Input
-                  label="Max Per Booking"
-                  type="number"
-                  value={formData.max_per_booking}
-                  onChange={(e) => setFormData(prev => ({ ...prev, max_per_booking: e.target.value }))}
-                />
-              </div>
-              
-              <div>
-                <Select
-                  label="Icon"
-                  value={formData.icon_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, icon_name: e.target.value }))}
-                  options={iconOptions.map(icon => ({ value: icon, label: icon }))}
-                />
-              </div>
-              
-              <div>
-                <Input
-                  label="Image URL"
-                  value={formData.image_url}
-                  onChange={(e) => setFormData(prev => ({ ...prev, image_url: e.target.value }))}
-                />
-              </div>
-              
-              <div>
-                <Input
-                  label="Sort Order"
-                  type="number"
-                  value={formData.sort_order}
-                  onChange={(e) => setFormData(prev => ({ ...prev, sort_order: e.target.value }))}
-                />
-              </div>
-              
-              <div className="flex items-center">
-                <label className="flex items-center cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={formData.active}
-                    onChange={(e) => setFormData(prev => ({ ...prev, active: e.target.checked }))}
-                    className="mr-2"
-                  />
-                  <span className="text-sm font-medium text-gray-700">Active</span>
-                </label>
-              </div>
-            </div>
-            
-            <div className="flex gap-3 pt-4">
-              <Button type="submit" variant="primary">
-                {editingExtra ? 'Update' : 'Create'} Extra
-              </Button>
-              <Button type="button" variant="secondary" onClick={resetForm}>
-                Cancel
-              </Button>
-            </div>
-          </form>
-        </div>
+        <ExtraForm
+          formData={formData}
+          isEditing={!!editingExtra}
+          onFormDataChange={setFormData}
+          onNameChange={handleNameChange}
+          onSubmit={handleSubmit}
+          onCancel={resetForm}
+        />
       )}
 
       {/* Extras List */}
@@ -392,97 +236,15 @@ const AdminExtras: React.FC = () => {
           <p className="text-gray-500">No extras found</p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Extra
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Category
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Price
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Stock
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredExtras.map((extra) => (
-                <tr key={extra.id}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{extra.name}</div>
-                      <div className="text-sm text-gray-500">{extra.slug}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-2">
-                      {getCategoryIcon(extra.category)}
-                      <span className="text-sm text-gray-900 capitalize">{extra.category}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">
-                      ${extra.price.toFixed(2)}
-                      <span className="text-gray-500 ml-1">
-                        / {extra.price_type === 'per_day' ? 'day' : 'trip'}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm text-gray-900">
-                      {extra.stock_quantity === null ? 'Unlimited' : extra.stock_quantity}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        extra.active
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {extra.active ? 'Active' : 'Inactive'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => handleToggleActive(extra.id, extra.active)}
-                      className="text-indigo-600 hover:text-indigo-900 mr-3"
-                    >
-                      {extra.active ? 'Deactivate' : 'Activate'}
-                    </button>
-                    <button
-                      onClick={() => handleEdit(extra)}
-                      className="text-indigo-600 hover:text-indigo-900 mr-3"
-                    >
-                      <Edit2 className="inline w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(extra.id)}
-                      className="text-red-600 hover:text-red-900"
-                    >
-                      <Trash2 className="inline w-4 h-4" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ExtrasListTable
+          extras={filteredExtras}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          onToggleActive={handleToggleActive}
+        />
       )}
     </div>
   );
 };
 
-export default AdminExtras; 
+export default AdminExtras;
